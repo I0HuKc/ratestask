@@ -4,3 +4,6 @@
 **/instance/
 **/.pytest_cache/
 
+.gitignore
+README.md
+docker-compose.test.yml

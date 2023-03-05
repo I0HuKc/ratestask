@@ -1,0 +1,45 @@
+version: "3.9"
+services:
+  ratestask_web_test:
+    build:
+      dockerfile: web.Dockerfile
+      context: .
+    command: python -m pytest -v
+    volumes:
+      - .:/usr/src/app/
+    ports:
+      - 5000:5000
+    env_file:
+      - ./.env
+    depends_on:
+      ratestask_db:
+        condition: service_healthy
+    container_name: ratestask_web_test
+
+  ratestask_db:
+    build:
+      dockerfile: db.Dockerfile
+      context: .
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/
+    environment:
+      - POSTGRES_USER=admin
+      - POSTGRES_PASSWORD=ratestask
+      - POSTGRES_DB=rates_db
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U admin -d rates_db"]
+      interval: 1s
+      timeout: 10s
+      retries: 5
+      start_period: 80s    
+    ports:
+      - "5432:5432"
+    container_name: ratestask_db
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+
+networks:
+  default:
+    name: ratestask_net
