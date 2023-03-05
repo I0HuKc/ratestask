@@ -2,23 +2,21 @@ import datetime
 
 from flask import Flask, jsonify, request
 from typing import List
-
 from psycopg2.extras import RealDictCursor
+from flask_parameter_validation import ValidateParameters, Json, Query
+
 from database import db_conn
 
 app = Flask(__name__)
 
 @app.route("/rates", methods=['GET'])
-def rates():
-    # Input data
-    args = request.args
-
-    # Checking for the existence of input data
-    err = args_validation(request.args)
-    if err != None:
-        return err
-
-    # Set DB connection
+@ValidateParameters()
+def rates(
+    date_from: str = Query(pattern="^\d{4}-\d{2}-\d{2}$"),
+    date_to: str = Query(pattern="^\d{4}-\d{2}-\d{2}$"),
+    origin: str = Query(),
+    destination: str = Query(),
+):
     conn = db_conn()
     cur = conn.cursor(cursor_factory=RealDictCursor)
    
@@ -61,10 +59,10 @@ def rates():
                 ORDER BY day ASC;
         """, 
         {
-            'date_from': args.get("date_from"),
-            'date_to': args.get("date_to"),
-            'origin': args.get("origin"),
-            'destination': args.get("destination")
+            'date_from': request.args.get("date_from"),
+            'date_to': request.args.get("date_to"),
+            'origin': request.args.get("origin"),
+            'destination': request.args.get("destination")
         }
     )
     
@@ -73,33 +71,3 @@ def rates():
     conn.close()    
 
     return jsonify(rates)
-
-
-def args_validation(args):    
-    date_format = '%Y-%m-%d'
-
-    if args.get("date_from"):
-        try:
-            datetime.datetime.strptime(args.get("date_from"), date_format)
-        except ValueError:         
-            return jsonify(error="Incorrect data format, should be YYYY-MM-DD"), 400
-    else:
-        return jsonify(error="Parameter `date_from` is not found"), 400
-
-    if args.get("date_to"):
-        try:
-            datetime.datetime.strptime(args.get("date_to"), date_format)
-        except ValueError:         
-            return jsonify(error="Incorrect data format, should be YYYY-MM-DD"), 400
-    else:
-        return jsonify(error="Parameter `date_to` is not found"), 400
-
-    if args.get("origin"):
-        pass
-    else:
-        return jsonify(error="Parameter `origin` is not found"), 400
-
-    if args.get("destination"):
-        pass
-    else:
-        return jsonify(error="Parameter `destination` is not found"), 400
